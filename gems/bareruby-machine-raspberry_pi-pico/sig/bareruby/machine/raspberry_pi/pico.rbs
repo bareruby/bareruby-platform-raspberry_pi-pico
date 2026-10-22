@@ -1,0 +1,10 @@
+module Bareruby
+  module Machine
+    module RaspberryPi
+      module Pico
+        VERSION: String
+        # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+      end
+    end
+  end
+end
