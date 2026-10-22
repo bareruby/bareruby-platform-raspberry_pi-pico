@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify-version:
+    name: Verify tag and gemspec versions
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+
+      - name: Compare tag version with gemspec versions
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          status=0
+
+          machine_version=$(ruby -e 'puts Gem::Specification.load("gems/bareruby-machine-raspberry_pi-pico/bareruby-machine-raspberry_pi-pico.gemspec").version')
+          if [ "$machine_version" = "$tag_version" ]; then
+            echo "bareruby-machine-raspberry_pi-pico.gemspec: $machine_version"
+          else
+            echo "::error file=gems/bareruby-machine-raspberry_pi-pico/bareruby-machine-raspberry_pi-pico.gemspec::version $machine_version does not match tag $GITHUB_REF_NAME"
+            status=1
+          fi
+
+          binding_version=$(ruby -e 'puts Gem::Specification.load("gems/bareruby-binding-raspberry_pi-pico_sdk/bareruby-binding-raspberry_pi-pico_sdk.gemspec").version')
+          if [ "$binding_version" = "$tag_version" ]; then
+            echo "bareruby-binding-raspberry_pi-pico_sdk.gemspec: $binding_version"
+          else
+            echo "::error file=gems/bareruby-binding-raspberry_pi-pico_sdk/bareruby-binding-raspberry_pi-pico_sdk.gemspec::version $binding_version does not match tag $GITHUB_REF_NAME"
+            status=1
+          fi
+
+          exit "$status"
+
+  bareruby-machine-raspberry_pi-pico:
+    name: Release bareruby-machine-raspberry_pi-pico
+    needs: verify-version
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+
+      - name: bundle install
+        run: bundle install
+        working-directory: gems/bareruby-machine-raspberry_pi-pico
+
+      - uses: rubygems/release-gem@v1
+        with:
+          working-directory: gems/bareruby-machine-raspberry_pi-pico
+
+  bareruby-binding-raspberry_pi-pico_sdk:
+    name: Release bareruby-binding-raspberry_pi-pico_sdk
+    needs: verify-version
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+
+      - name: bundle install
+        run: bundle install
+        working-directory: gems/bareruby-binding-raspberry_pi-pico_sdk
+
+      - uses: rubygems/release-gem@v1
+        with:
+          working-directory: gems/bareruby-binding-raspberry_pi-pico_sdk
